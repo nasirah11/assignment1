@@ -105,29 +105,47 @@ if st.button("Run trials"):
             seed = int(seed_input.strip())
         except:
             seed = None
+
     trial_params = [
-        {"label":"Trial 1","CO_R":co_r1,"MUT_R":mut_r1},
-        {"label":"Trial 2","CO_R":co_r2,"MUT_R":mut_r2},
-        {"label":"Trial 3","CO_R":co_r3,"MUT_R":mut_r3},
+        {"label": "Trial 1", "CO_R": co_r1, "MUT_R": mut_r1},
+        {"label": "Trial 2", "CO_R": co_r2, "MUT_R": mut_r2},
+        {"label": "Trial 3", "CO_R": co_r3, "MUT_R": mut_r3},
     ]
+
     results = []
     for t in trial_params:
-        best_ind, best_fit = run_ga(pop_size=int(pop_size), generations=int(generations),
-                                   co_r=t["CO_R"], mut_r=t["MUT_R"],
-                                   programs=programs, hours=hours, ratings=ratings, seed=seed)
+        best_ind, best_fit = run_ga(
+            pop_size=int(pop_size),
+            generations=int(generations),
+            co_r=t["CO_R"],
+            mut_r=t["MUT_R"],
+            programs=programs,
+            hours=hours,
+            ratings=ratings,
+            seed=seed,
+        )
         schedule_df = pd.DataFrame({
             "Hour": hours,
             "Program": [programs[i] for i in best_ind],
-            "Rating": [ratings.loc[programs[i], f'Hour {hours[idx]}'] for idx,i in enumerate(best_ind)]
+            "Rating": [ratings.loc[programs[i], f'Hour {hours[idx]}'] for idx, i in enumerate(best_ind)]
         })
         t["schedule_df"] = schedule_df
         t["best_fit"] = best_fit
         results.append(t)
 
-#display results
- for t in results:
+    # Display results
+    for t in results:
         st.subheader(f"{t['label']}: CO_R={t['CO_R']}, MUT_R={t['MUT_R']}, Fitness={t['best_fit']:.4f}")
-        st.dataframe(t["schedule_df"].assign(Time=lambda df: df["Hour"].astype(str)+":00").set_index("Time")[["Program","Rating"]])
+        st.dataframe(
+            t["schedule_df"]
+            .assign(Time=lambda df: df["Hour"].astype(str) + ":00")
+            .set_index("Time")[["Program", "Rating"]]
+        )
         csv_buf = StringIO()
         t["schedule_df"].to_csv(csv_buf, index=False)
-        st.download_button(label=f"Download {t['label']} schedule CSV", data=csv_buf.getvalue(), file_name=f"{t['label']}_schedule.csv", mime="text/csv")
+        st.download_button(
+            label=f"Download {t['label']} schedule CSV",
+            data=csv_buf.getvalue(),
+            file_name=f"{t['label']}_schedule.csv",
+            mime="text/csv"
+        )
