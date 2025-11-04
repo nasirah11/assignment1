@@ -62,3 +62,69 @@ def run_ga(pop_size, generations, co_r, mut_r, programs, hours, ratings, seed=No
     best_ind = pop[best_idx]
     best_fit = final_fits[best_idx]
     return best_ind, best_fit
+
+#streamlit ui
+st.set_page_config(page_title="GA TV Scheduling", layout="wide")
+st.title("Genetic Algorithm — TV Scheduling")
+
+csv_path = "modified_program_ratings.csv"  # ensure this file is in the same folder as app.py
+df = pd.read_csv(csv_path)
+
+programs = df['Type of Program'].tolist()
+hours = [int(c.split()[-1]) for c in df.columns if c.startswith("Hour")]
+hours = sorted(hours)
+ratings = df.set_index('Type of Program')[[f'Hour {h}' for h in hours]]
+
+st.sidebar.header("GA Run settings")
+pop_size = st.sidebar.number_input("Population size", value=150, min_value=10, max_value=1000, step=10)
+generations = st.sidebar.number_input("Generations", value=300, min_value=1, max_value=5000, step=1)
+seed_input = st.sidebar.text_input("Random seed (optional)", value="")
+
+st.header("Trial parameters (three trials)")
+col1, col2, col3 = st.columns(3)
+with col1:
+    st.subheader("Trial 1")
+    co_r1 = st.slider("CO_R (Trial 1)", 0.0, 0.95, 0.80, step=0.01)
+    mut_r1 = st.slider("MUT_R (Trial 1)", 0.01, 0.05, 0.02, step=0.005)
+with col2:
+    st.subheader("Trial 2")
+    co_r2 = st.slider("CO_R (Trial 2)", 0.0, 0.95, 0.70, step=0.01, key="co2")
+    mut_r2 = st.slider("MUT_R (Trial 2)", 0.01, 0.05, 0.03, step=0.005, key="mu2")
+with col3:
+    st.subheader("Trial 3")
+    co_r3 = st.slider("CO_R (Trial 3)", 0.0, 0.95, 0.60, step=0.01, key="co3")
+    mut_r3 = st.slider("MUT_R (Trial 3)", 0.01, 0.05, 0.04, step=0.005, key="mu3")
+
+if st.button("Run trials"):
+    seed = None
+    if seed_input.strip() != "":
+        try:
+            seed = int(seed_input.strip())
+        except:
+            seed = None
+    trial_params = [
+        {"label":"Trial 1","CO_R":co_r1,"MUT_R":mut_r1},
+        {"label":"Trial 2","CO_R":co_r2,"MUT_R":mut_r2},
+        {"label":"Trial 3","CO_R":co_r3,"MUT_R":mut_r3},
+    ]
+    results = []
+    for t in trial_params:
+        best_ind, best_fit = run_ga(pop_size=int(pop_size), generations=int(generations),
+                                   co_r=t["CO_R"], mut_r=t["MUT_R"],
+                                   programs=programs, hours=hours, ratings=ratings, seed=seed)
+        schedule_df = pd.DataFrame({
+            "Hour": hours,
+            "Program": [programs[i] for i in best_ind],
+            "Rating": [ratings.loc[programs[i], f'Hour {hours[idx]}'] for idx,i in enumerate(best_ind)]
+        })
+        t["schedule_df"] = schedule_df
+        t["best_fit"] = best_fit
+        results.append(t)
+
+#display results
+ for t in results:
+        st.subheader(f"{t['label']}: CO_R={t['CO_R']}, MUT_R={t['MUT_R']}, Fitness={t['best_fit']:.4f}")
+        st.dataframe(t["schedule_df"].assign(Time=lambda df: df["Hour"].astype(str)+":00").set_index("Time")[["Program","Rating"]])
+        csv_buf = StringIO()
+        t["schedule_df"].to_csv(csv_buf, index=False)
+        st.download_button(label=f"Download {t['label']} schedule CSV", data=csv_buf.getvalue(), file_name=f"{t['label']}_schedule.csv", mime="text/csv")
