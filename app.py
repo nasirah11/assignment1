@@ -6,7 +6,7 @@ import random
 from io import StringIO
 
 def make_individual(num_hours, n_programs):
-    return [random.randrange(n_programs) for in range(num_hours)]
+    return [random.randrange(n_programs) for _ in range(num_hours)]
 
 def fitness(ind, programs, hours, ratings):
     total = 0.0
