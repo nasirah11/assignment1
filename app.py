@@ -41,7 +41,8 @@ def run_ga(pop_size, generations, co_r, mut_r, programs, hours, ratings, seed=No
     n_programs = len(programs)
     pop = [make_individual(num_hours, n_programs) for _ in range(pop_size)]
     best_history = []
-  for gen in range(generations):
+
+    for gen in range(generations):
         fits = [fitness(ind, programs, hours, ratings) for ind in pop]
         new_pop = []
         while len(new_pop) < pop_size:
@@ -57,11 +58,13 @@ def run_ga(pop_size, generations, co_r, mut_r, programs, hours, ratings, seed=No
                 mutate(child2, n_programs)
             new_pop.extend([child1, child2])
         pop = new_pop[:pop_size]
+
     final_fits = [fitness(ind, programs, hours, ratings) for ind in pop]
     best_idx = int(np.argmax(final_fits))
     best_ind = pop[best_idx]
     best_fit = final_fits[best_idx]
     return best_ind, best_fit
+
 
 #streamlit ui
 st.set_page_config(page_title="GA TV Scheduling", layout="wide")
